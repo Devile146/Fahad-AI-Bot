@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cyber Toolkit Demo</title>
+<style>
+body{margin:0;font-family:Arial;background:#0b0f19;color:#fff;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:16px}
+.card{width:100%;max-width:520px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:22px;padding:16px}
+.btn{width:100%;padding:12px;border:none;border-radius:14px;font-weight:800;margin-top:10px;cursor:pointer}
+.primary{background:#3b82f6;color:#061223}
+.ghost{background:rgba(255,255,255,.12);color:#fff}
+.ok{background:#25D366;color:#07130d}
+.screen{display:none}
+.active{display:block}
+.input{width:100%;padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.25);color:#fff;outline:none;margin-bottom:10px}
+.box{margin-top:12px;padding:12px;border-radius:18px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.12)}
+.line{font-size:13px;opacity:.85;margin:6px 0}
+a{color:#7dd3fc;text-decoration:none}
+video,img{width:100%;border-radius:18px;border:1px solid rgba(255,255,255,.14);margin-top:10px;background:rgba(0,0,0,.35)}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <!-- Step 1 -->
+  <div class="screen active" id="s1">
+    <h2>Student Verification</h2>
+    <p class="line">Enter Name + ID</p>
+    <input class="input" id="name" placeholder="Your Name" />
+    <input class="input" id="sid" placeholder="Student ID / Phone" />
+    <button class="btn primary" onclick="go(2)">Continue</button>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="screen" id="s2">
+    <h2>Location Permission</h2>
+    <p class="line">Allow location to get real coordinates.</p>
+    <div class="box">
+      <div class="line"><b>Latitude:</b> <span id="lat">-</span></div>
+      <div class="line"><b>Longitude:</b> <span id="lon">-</span></div>
+      <div class="line"><b>Google Maps:</b> <span id="mapLink">-</span></div>
+    </div>
+    <button class="btn primary" onclick="getLoc()">Allow Location</button>
+    <button class="btn ghost" onclick="go(3)">Skip / Deny</button>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="screen" id="s3">
+    <h2>Camera Permission</h2>
+    <p class="line">Allow camera to preview and capture photo.</p>
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="canvas" style="display:none;"></canvas>
+    <img id="photo" style="display:none;" />
+    <button class="btn primary" onclick="startCam()">Allow Camera</button>
+    <button class="btn ghost" onclick="capture()"> Capture Photo</button>
+    <button class="btn ok" onclick="go(4)">Next</button>
+  </div>
+
+  <!-- Step 4 -->
+  <div class="screen" id="s4">
+    <h2>Toolkit Demo</h2>
+    <div class="box">
+      <div class="line"><b>Name:</b> <span id="showName">-</span></div>
+      <div class="line"><b>ID:</b> <span id="showSid">-</span></div>
+      <div class="line"><b>Location:</b> <span id="showLoc">-</span></div>
+      <div class="line"><b>Latitude:</b> <span id="showLat">-</span></div>
+      <div class="line"><b>Longitude:</b> <span id="showLon">-</span></div>
+      <div class="line"><b>Maps Link:</b> <span id="showMap">-</span></div>
+      <div class="line"><b>Camera:</b> <span id="showCam">-</span></div>
+    </div>
+    <button class="btn ghost" onclick="resetAll()">Restart</button>
+  </div>
+</div>
+
+<script>
+let lat=null, lon=null;
+let locOk=false, camOk=false;
+let stream=null;
+
+function go(n){
+  if(n===2){
+    const name=document.getElementById("name").value.trim();
+    const sid=document.getElementById("sid").value.trim();
+    if(!name || !sid){ alert("Name + ID required"); return; }
+  }
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById("s"+n).classList.add("active");
+
+  if(n===4){
+    document.getElementById("showName").innerText=document.getElementById("name").value.trim();
+    document.getElementById("showSid").innerText=document.getElementById("sid").value.trim();
+    document.getElementById("showLoc").innerText=locOk?"Allowed":"Denied/Skip";
+    document.getElementById("showLat").innerText=lat?lat.toFixed(6):"-";
+    document.getElementById("showLon").innerText=lon?lon.toFixed(6):"-";
+    document.getElementById("showMap").innerHTML=lat?`<a href="https://www.google.com/maps?q=${lat},${lon}" target="_blank">Open Maps</a>`:"-";
+    document.getElementById("showCam").innerText=camOk?"Allowed":"Denied/Skip";
+  }
+}
+
+function getLoc(){
+  if(!navigator.geolocation){ alert("Geolocation not supported"); locOk=false; go(3); return; }
+  navigator.geolocation.getCurrentPosition(
+    (pos)=>{
+      locOk=true;
+      lat=pos.coords.latitude;
+      lon=pos.coords.longitude;
+      document.getElementById("lat").innerText=lat.toFixed(6);
+      document.getElementById("lon").innerText=lon.toFixed(6);
+      document.getElementById("mapLink").innerHTML=`<a href="https://www.google.com/maps?q=${lat},${lon}" target="_blank">Open Maps</a>`;
+      setTimeout(()=>go(3),500);
+    },
+    ()=>{ locOk=false; alert("Location denied/blocked"); go(3); },
+    {enableHighAccuracy:true, timeout:15000}
+  );
+}
+
+async function startCam(){
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
+    document.getElementById("video").srcObject=stream;
+    camOk=true;
+    alert("Camera Allowed  Now you can capture photo");
+  }catch(e){ camOk=false; alert("Camera denied/blocked!"); }
+}
+
+function capture(){
+  if(!stream){ alert("Start camera first"); return; }
+  const video=document.getElementById("video");
+  const canvas=document.getElementById("canvas");
+  const photo=document.getElementById("photo");
+  canvas.width=video.videoWidth||720;
+  canvas.height=video.videoHeight||1280;
+  canvas.getContext("2d").drawImage(video,0,0,canvas.width,canvas.height);
+  photo.src=canvas.toDataURL("image/png");
+  photo.style.display="block";
+  alert("Photo Captured ");
+}
+
+function stopCam(){ if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; } }
+
+function resetAll(){
+  stopCam();
+  lat=null; lon=null; locOk=false; camOk=false;
+  document.getElementById("lat").innerText="-";
+  document.getElementById("lon").innerText="-";
+  document.getElementById("mapLink").innerText="-";
+  document.getElementById("video").srcObject=null;
+  document.getElementById("photo").style.display="none";
+  document.getElementById("photo").src="";
+  document.getElementById("name").value="";
+  document.getElementById("sid").value="";
+  go(1);
+}
+</script>
+
+</body>
+</html>
